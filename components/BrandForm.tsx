@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { Sparkles } from 'lucide-react';
 
 interface BrandFormProps {
   onSubmit: (data: BrandInputData) => Promise<void>;
@@ -65,17 +66,17 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
   };
 
   return (
-    <Card className="border-0 shadow-medium bg-gradient-to-br from-white to-gray-50">
-      <CardHeader>
-        <CardTitle>Create Your Brand Kit</CardTitle>
-        <CardDescription>
+    <Card className="border-0 shadow-premium bg-gradient-to-br from-white/90 to-gray-50/80 dark:from-gray-900/80 dark:to-gray-800/60">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-2xl">Create Your Brand Kit</CardTitle>
+        <CardDescription className="text-base">
           Provide details about your business and let AI generate your complete brand identity
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label htmlFor="businessName" className="block text-sm font-semibold text-gray-900">
+        <form onSubmit={handleSubmit} className="space-y-7">
+          <div className="space-y-2.5">
+            <label htmlFor="businessName" className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
               Business Name <span className="text-red-500">*</span>
             </label>
             <Input
@@ -84,12 +85,11 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               disabled={isLoading}
-              className="text-base"
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="industry" className="block text-sm font-semibold text-gray-900">
+          <div className="space-y-2.5">
+            <label htmlFor="industry" className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
               Industry <span className="text-red-500">*</span>
             </label>
             <Select
@@ -97,7 +97,6 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
               disabled={isLoading}
-              className="text-base"
             >
               {INDUSTRIES.map((ind) => (
                 <option key={ind} value={ind === 'Select an industry' ? '' : ind}>
@@ -107,22 +106,21 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="targetAudience" className="block text-sm font-semibold text-gray-900">
+          <div className="space-y-2.5">
+            <label htmlFor="targetAudience" className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
               Target Audience <span className="text-red-500">*</span>
             </label>
             <Input
               id="targetAudience"
-              placeholder="e.g., Young professionals aged 25-40, Eco-conscious entrepreneurs, Fitness enthusiasts"
+              placeholder="e.g., Young professionals aged 25-40, Eco-conscious entrepreneurs"
               value={targetAudience}
               onChange={(e) => setTargetAudience(e.target.value)}
               disabled={isLoading}
-              className="text-base"
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="tone" className="block text-sm font-semibold text-gray-900">
+          <div className="space-y-2.5">
+            <label htmlFor="tone" className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
               Brand Tone/Style
             </label>
             <Select
@@ -130,7 +128,6 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
               value={tone}
               onChange={(e) => setTone(e.target.value)}
               disabled={isLoading}
-              className="text-base"
             >
               {TONES.map((t) => (
                 <option key={t.value} value={t.value}>
@@ -138,7 +135,7 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
                 </option>
               ))}
             </Select>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Choose a style that best represents your brand personality
             </p>
           </div>
@@ -149,7 +146,14 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
             isLoading={isLoading}
             className="w-full mt-8 text-base font-semibold"
           >
-            {isLoading ? 'Generating Brand Kit...' : '✨ Generate Brand Kit'}
+            {isLoading ? (
+              'Generating Brand Kit...'
+            ) : (
+              <span className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                Generate Brand Kit
+              </span>
+            )}
           </Button>
         </form>
       </CardContent>
