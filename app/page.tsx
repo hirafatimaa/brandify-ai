@@ -93,7 +93,11 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(lastInputData),
+        body: JSON.stringify({
+          ...lastInputData,
+          regenerationId: `${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          previousColors: result?.colors,
+        }),
       });
 
       if (!response.ok) {

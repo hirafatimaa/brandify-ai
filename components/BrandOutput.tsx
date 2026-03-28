@@ -285,7 +285,6 @@ export function BrandOutput({ result, onRegenerate, onRegenerateLogo, isLoading 
         </Card>
       </div>
 
-      {/* ═══════════ Logo Concepts — Premium Showcase ═══════════ */}
       <div className="animate-slide-up stagger-4" style={{ opacity: 0, animationFillMode: 'forwards' }}>
         <Card className="logo-section-glow overflow-visible">
           <CardHeader>

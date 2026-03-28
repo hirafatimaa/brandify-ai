@@ -8,7 +8,7 @@ export const maxDuration = 60;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { businessName, industry, targetAudience, tone } = body;
+    const { businessName, industry, targetAudience, tone, logoStylePreference, mainProduct, regenerationId, previousColors } = body;
 
     // Validate required fields (we still want to return 400 for bad input)
     if (!businessName || !industry || !targetAudience) {
@@ -38,6 +38,10 @@ export async function POST(request: NextRequest) {
         industry,
         targetAudience: targetAudience.trim(),
         tone: tone || 'modern',
+        logoStylePreference,
+        mainProduct,
+        regenerationId,
+        previousColors,
       }),
       timeoutPromise
     ]);
@@ -55,7 +59,12 @@ export async function POST(request: NextRequest) {
       const body = await request.clone().json().catch(() => ({}));
       const name = body.businessName || 'Your Brand';
       const ind = body.industry || 'Business';
-      const hue = (name.length * 25) % 360;
+      const seed = typeof body.regenerationId === 'string' ? body.regenerationId : '';
+      let hash = 0;
+      for (let i = 0; i < seed.length; i += 1) {
+        hash = (hash * 31 + seed.charCodeAt(i)) % 100000;
+      }
+      const hue = (name.length * 25 + hash) % 360;
       
       const fallbackKit = {
         tagline: `Elevating ${ind} for the modern world.`,

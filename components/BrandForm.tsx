@@ -17,6 +17,8 @@ export interface BrandInputData {
   industry: string;
   targetAudience: string;
   tone: string;
+  logoStylePreference?: string;
+  mainProduct?: string;
 }
 
 const INDUSTRIES = [
@@ -43,11 +45,23 @@ const TONES = [
   { value: 'bold', label: 'Bold' }
 ];
 
+const LOGO_STYLES = [
+  { value: 'minimal', label: 'Minimal - Clean & Simple' },
+  { value: 'abstract', label: 'Abstract - Conceptual' },
+  { value: 'playful', label: 'Playful - Fun & Friendly' },
+  { value: 'geometric', label: 'Geometric - Structured' },
+  { value: 'organic', label: 'Organic - Natural Flows' },
+  { value: 'luxury', label: 'Luxury - Elegant & Refined' },
+  { value: 'bold', label: 'Bold - Strong & Statement' },
+];
+
 export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
   const [businessName, setBusinessName] = useState('');
   const [industry, setIndustry] = useState('');
   const [targetAudience, setTargetAudience] = useState('');
   const [tone, setTone] = useState('modern');
+  const [logoStylePreference, setLogoStylePreference] = useState('minimal');
+  const [mainProduct, setMainProduct] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +75,9 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
       businessName: businessName.trim(),
       industry,
       targetAudience: targetAudience.trim(),
-      tone
+      tone,
+      logoStylePreference,
+      mainProduct: mainProduct.trim() || undefined
     });
   };
 
@@ -137,6 +153,43 @@ export function BrandForm({ onSubmit, isLoading }: BrandFormProps) {
             </Select>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Choose a style that best represents your brand personality
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            <label htmlFor="logoStylePreference" className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Logo Style Preference
+            </label>
+            <Select
+              id="logoStylePreference"
+              value={logoStylePreference}
+              onChange={(e) => setLogoStylePreference(e.target.value)}
+              disabled={isLoading}
+            >
+              {LOGO_STYLES.map((style) => (
+                <option key={style.value} value={style.value}>
+                  {style.label}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Select your preferred logo design approach
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            <label htmlFor="mainProduct" className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Main Product/Focus (Optional)
+            </label>
+            <Input
+              id="mainProduct"
+              placeholder="e.g., coffee, jewelry, fitness coaching"
+              value={mainProduct}
+              onChange={(e) => setMainProduct(e.target.value)}
+              disabled={isLoading}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Help us personalize logos and captions
             </p>
           </div>
 
