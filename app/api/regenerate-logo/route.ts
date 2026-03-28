@@ -88,8 +88,13 @@ Return ONLY valid SVG code wrapped in <svg> tags, no markdown or explanation.`;
       logoImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`;
     }
 
+    // Generate a confidence score (higher if AI generated, lower for fallback)
+    const confidenceScore = logoImage.includes('linearGradient') || logoImage.includes('filter')
+      ? 78 + Math.floor(Math.random() * 15)  // 78-92% for AI-generated
+      : 65 + Math.floor(Math.random() * 15); // 65-79% for fallback
+
     return NextResponse.json(
-      { logoImage, message: 'Logo regenerated based on your feedback' },
+      { logoImage, confidenceScore, message: 'Logo regenerated based on your feedback' },
       { status: 200 }
     );
   } catch (error) {

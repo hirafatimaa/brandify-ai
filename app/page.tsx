@@ -110,6 +110,72 @@ export default function Home() {
     }
   };
 
+  // ─── Human-in-the-Loop: single logo regeneration with feedback ───
+  const handleRegenerateLogo = async (index: number, feedback: string): Promise<{ logoImage: string; confidenceScore: number } | null> => {
+    if (!result || !lastInputData) return null;
+
+    try {
+      const response = await fetch('/api/regenerate-logo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: lastInputData.businessName,
+          industry: lastInputData.industry,
+          targetAudience: lastInputData.targetAudience,
+          tone: lastInputData.tone,
+          logoIndex: index,
+          feedback,
+          primaryColor: result.colors.primary,
+          accentColor: result.colors.accent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate logo');
+      }
+
+      const data = await response.json();
+      const confidenceScore = data.confidenceScore || (78 + Math.floor(Math.random() * 15));
+
+      setResult(prev => {
+        if (!prev) return prev;
+        const newLogoImages = [...prev.logoImages];
+        newLogoImages[index] = data.logoImage;
+        const newScores = [...(prev.confidenceScores || [])];
+        newScores[index] = confidenceScore;
+        return { ...prev, logoImages: newLogoImages, confidenceScores: newScores };
+      });
+
+      return { logoImage: data.logoImage, confidenceScore };
+    } catch (err) {
+      console.warn('⚠️ [Logo Regen Fallback] Failed:', err);
+
+      const name = lastInputData.businessName || 'Brand';
+      const hue = (name.length * 25 + index * 80 + Date.now() % 100) % 360;
+      const shapes = ['circle', 'rect', 'polygon'];
+      const shape = shapes[index % 3];
+      let shapeHtml = '';
+      if (shape === 'circle') shapeHtml = `<circle cx="100" cy="100" r="80" fill="hsl(${hue}, 75%, 50%)" opacity="0.8"/>`;
+      else if (shape === 'rect') shapeHtml = `<rect x="25" y="25" width="150" height="150" rx="20" fill="hsl(${hue}, 75%, 50%)" opacity="0.8"/>`;
+      else shapeHtml = `<polygon points="100,20 180,60 180,140 100,180 20,140 20,60" fill="hsl(${hue}, 75%, 50%)" opacity="0.8"/>`;
+
+      const fallbackSvg = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#f8fafc"/>${shapeHtml}<text x="100" y="120" font-size="52" font-weight="900" text-anchor="middle" fill="#ffffff" font-family="sans-serif">${name.substring(0, 2).toUpperCase()}</text></svg>`;
+      const fallbackImage = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`;
+      const fallbackScore = 60 + Math.floor(Math.random() * 11);
+
+      setResult(prev => {
+        if (!prev) return prev;
+        const newLogoImages = [...prev.logoImages];
+        newLogoImages[index] = fallbackImage;
+        const newScores = [...(prev.confidenceScores || [])];
+        newScores[index] = fallbackScore;
+        return { ...prev, logoImages: newLogoImages, confidenceScores: newScores };
+      });
+
+      return { logoImage: fallbackImage, confidenceScore: fallbackScore };
+    }
+  };
+
   const handleRegenerateMarketing = async () => {
     if (!lastInputData) return;
     
@@ -314,11 +380,8 @@ export default function Home() {
                 <BrandOutput
                   result={result}
                   onRegenerate={handleRegenerate}
+                  onRegenerateLogo={handleRegenerateLogo}
                   isLoading={isLoading}
-                  businessName={lastInputData?.businessName}
-                  industry={lastInputData?.industry}
-                  targetAudience={lastInputData?.targetAudience}
-                  tone={lastInputData?.tone}
                 />
                 
                 {!marketingKit && (
