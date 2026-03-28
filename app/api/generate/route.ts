@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateBrandKit } from '@/lib/gemini';
 
 // Set timeout for the function (in seconds) - Vercel pro tier supports up to 60s
+// With aggressive logo timeouts, should complete in 20-30s
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
@@ -25,9 +26,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate brand kit with timeout wrapper
-    // Because lib/gemini.ts now has built-in fallbacks, it should succeed
+    // With optimized logo generation, target is 25-35s total
+    // 40s safety margin before hard timeout
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), 55000)
+      setTimeout(() => reject(new Error('TIMEOUT')), 40000)
     );
 
     const brandKit = await Promise.race([
