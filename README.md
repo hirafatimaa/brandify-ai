@@ -70,16 +70,6 @@ components/     UI + brand output components
 lib/            Gemini integration and generators
 ```
 
-## Notes for Demo
-
-- If Gemini quota is exceeded, the app falls back to local SVG logos and mock text.
-- Use human-in-the-loop regeneration to show real-time improvement.
-
-## Contact
-
-Event Discord: https://discord.gg/QBAfrfvBWT
-Organizer: codewithahsan.dev
-
 ## Deployment (Vercel)
 
 1. Push to GitHub
