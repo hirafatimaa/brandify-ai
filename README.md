@@ -6,8 +6,7 @@ Brandify AI is a premium, AI-powered brand identity generator that creates a com
 
 **Event:** CWA Prompt-a-thon 2026
 **Theme:** The AI Brand Architect
-**Date:** 28 March 2026 (Online via Discord)
-**Organizer:** CodeWithAhsan
+
 
 This project is our submission for the AI Brand Architect theme: an AI-powered branding assistant that accepts a business description and generates brand assets, logo ideas, and marketing content. We added a human-in-the-loop logo feedback flow to make the results closer to real-world brand iteration.
 
