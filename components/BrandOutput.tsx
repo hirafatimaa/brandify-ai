@@ -1,522 +1,354 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Copy, Check, RefreshCw, XCircle, RotateCcw,
-  Send, Sparkles, ShieldCheck, ShieldAlert, ShieldX, Loader2, Cpu
-} from 'lucide-react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { ArrowDown, ArrowDownToLine, ArrowLeft, ArrowRight, Check, Clipboard, FileText, Grid2X2, RotateCcw } from 'lucide-react';
+import { cmyk, colorKeys, contrastPairs, filename, fonts, proportions, readableOn, recolor, rgb, similarityLimit, svgUrl, type BrandFont, type BrandResult } from '@/lib/brand/model';
 
-export interface BrandResult {
-  tagline: string;
-  description: string;
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    background: string;
-    text: string;
-  };
-  captions: string[];
-  logoImages: string[];
-  confidenceScores?: number[];
-}
+const chapters = [
+  ['foundation', 'Foundation'],
+  ['marks', 'Marks'],
+  ['color', 'Color'],
+  ['typography', 'Typography'],
+  ['voice', 'Voice'],
+  ['applications', 'Applications'],
+  ['exports', 'Exports'],
+] as const;
 
-interface LogoState {
-  status: 'active' | 'rejected' | 'regenerating';
-  confidenceScore: number;
-  feedback: string;
-  showFeedbackInput: boolean;
-  justUpdated: boolean;
-  toastExiting: boolean;
-  iterationCount: number;
-  selected: boolean;
-}
-
-interface BrandOutputProps {
+type Format = 'guidelines' | 'assets' | 'logo-book' | 'avatar' | 'poster';
+type Props = {
   result: BrandResult;
-  onRegenerate: () => void;
-  onRegenerateLogo?: (index: number, feedback: string) => Promise<{ logoImage: string; confidenceScore: number } | null>;
-  isLoading?: boolean;
+  onEdit: () => void;
+  onRetry: () => void;
+  onMarketing: () => void;
+  busy: boolean;
+  selected: number;
+  onSelect: (index: number) => void;
+};
+
+const displayClasses: Record<BrandFont, string> = {
+  manrope: 'guide-manrope', syne: 'guide-syne', instrument: 'guide-instrument', barlow: 'guide-barlow',
+};
+
+function Artwork({ svg, color, alt, ...props }: { svg: string; color: string; alt: string; className?: string; style?: CSSProperties }) {
+  /* eslint-disable-next-line @next/next/no-img-element */
+  return <img src={svgUrl(recolor(svg, color))} alt={alt} draggable={false} {...props} />;
 }
 
-function generateInitialScores(count: number): number[] {
-  return Array.from({ length: count }, () => 78 + Math.floor(Math.random() * 15)); // 78-92%
+function Chapter({ id, title, children }: { id: (typeof chapters)[number][0]; title: string; children: ReactNode }) {
+  return (
+    <section className="guide-chapter" id={id} aria-labelledby={`${id}-title`}>
+      {id === 'foundation' ? <p className="guide-kicker">{title}</p> : <div className="guide-section-head">
+        <h2 id={`${id}-title`}>{title}</h2>
+        <span>{chapters.find((chapter) => chapter[0] === id)?.[1]}</span>
+      </div>}
+      {children}
+    </section>
+  );
 }
 
-export function BrandOutput({ result, onRegenerate, onRegenerateLogo, isLoading }: BrandOutputProps) {
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
-  const [logoStates, setLogoStates] = useState<Record<number, LogoState>>({});
+function DownloadLink({ svg, color, file, children }: { svg: string; color: string; file: string; children: ReactNode }) {
+  return <a className="guide-inline-action" download={file} href={svgUrl(recolor(svg, color))}>{children}<ArrowDownToLine size={14} aria-hidden="true" /></a>;
+}
 
-  // Initialize logo states when result changes
+export function BrandOutput({ result, onEdit, onRetry, onMarketing, busy, selected, onSelect }: Props) {
+  const [chapter, setChapter] = useState('foundation');
+  const [pending, setPending] = useState<Format | null>(null);
+  const [notice, setNotice] = useState('');
+  const [exportError, setExportError] = useState('');
+  const [sample, setSample] = useState(result.draft.voice.headline);
+  const [copied, setCopied] = useState('');
+  const { brief, draft, logos, source, note } = result;
+  const logo = logos[selected];
+  const { palette } = logo;
+  const name = filename(brief.businessName);
+  const sampleClass = displayClasses[logo.font];
+  const accentInk = readableOn(palette.accent.hex);
+
   useEffect(() => {
-    const initialScores = result.confidenceScores || generateInitialScores(result.logoImages.length);
-    const initialStates: Record<number, LogoState> = {};
-    result.logoImages.forEach((_, index) => {
-      initialStates[index] = {
-        status: 'active',
-        confidenceScore: initialScores[index] || 82,
-        feedback: '',
-        showFeedbackInput: false,
-        justUpdated: false,
-        toastExiting: false,
-        iterationCount: 0,
-        selected: false,
-      };
-    });
-    setLogoStates(initialStates);
-    setLoadedImages({});
-  }, [result.logoImages, result.confidenceScores]);
-
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const handleSelect = useCallback((index: number) => {
-    setLogoStates(prev => {
-      const newStates = { ...prev };
-      // Deselect all, select the clicked one (toggle)
-      Object.keys(newStates).forEach(k => {
-        const key = Number(k);
-        newStates[key] = { ...newStates[key], selected: key === index ? !newStates[key].selected : false };
-      });
-      return newStates;
-    });
+    const sections = chapters.map(([id]) => document.getElementById(id)).filter((node): node is HTMLElement => Boolean(node));
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.find((entry) => entry.isIntersecting);
+      if (visible) setChapter(visible.target.id);
+    }, { rootMargin: '-14% 0px -68%' });
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
   }, []);
 
-  const handleReject = useCallback((index: number) => {
-    setLogoStates(prev => ({
-      ...prev,
-      [index]: {
-        ...prev[index],
-        status: 'rejected',
-        showFeedbackInput: false,
-        feedback: '',
-        selected: false,
-      },
-    }));
-  }, []);
-
-  const handleToggleFeedback = useCallback((index: number) => {
-    setLogoStates(prev => ({
-      ...prev,
-      [index]: {
-        ...prev[index],
-        showFeedbackInput: !prev[index].showFeedbackInput,
-        feedback: '',
-      },
-    }));
-  }, []);
-
-  const handleFeedbackChange = useCallback((index: number, value: string) => {
-    setLogoStates(prev => ({
-      ...prev,
-      [index]: { ...prev[index], feedback: value },
-    }));
-  }, []);
-
-  const handleSubmitFeedback = useCallback(async (index: number) => {
-    const state = logoStates[index];
-    if (!state || !state.feedback.trim() || !onRegenerateLogo) return;
-
-    setLogoStates(prev => ({
-      ...prev,
-      [index]: { ...prev[index], status: 'regenerating', showFeedbackInput: false },
-    }));
-
-    const regenerated = await onRegenerateLogo(index, state.feedback.trim());
-
-    if (regenerated) {
-      setLoadedImages(prev => ({ ...prev, [index]: false }));
-      setLogoStates(prev => ({
-        ...prev,
-        [index]: {
-          ...prev[index],
-          status: 'active',
-          confidenceScore: regenerated.confidenceScore,
-          feedback: '',
-          showFeedbackInput: false,
-          justUpdated: true,
-          toastExiting: false,
-          iterationCount: prev[index].iterationCount + 1,
-        },
-      }));
-
-      setTimeout(() => {
-        setLogoStates(prev => ({
-          ...prev,
-          [index]: { ...prev[index], toastExiting: true },
-        }));
-      }, 3000);
-      setTimeout(() => {
-        setLogoStates(prev => ({
-          ...prev,
-          [index]: { ...prev[index], justUpdated: false, toastExiting: false },
-        }));
-      }, 3400);
-    } else {
-      setLogoStates(prev => ({
-        ...prev,
-        [index]: { ...prev[index], status: 'active' },
-      }));
+  async function copy(value: string, label: string) {
+    setExportError('');
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(label);
+      setNotice(`Copied ${label}.`);
+    } catch {
+      setExportError('Clipboard access is unavailable here.');
     }
-  }, [logoStates, onRegenerateLogo]);
+  }
 
-  const getConfidenceLabel = (score: number) => {
-    if (score >= 90) return { text: 'Excellent', icon: ShieldCheck, colorClass: 'text-emerald-500' };
-    if (score >= 80) return { text: 'Strong', icon: ShieldCheck, colorClass: 'text-blue-500' };
-    if (score >= 70) return { text: 'Good', icon: ShieldAlert, colorClass: 'text-amber-500' };
-    return { text: 'Fair', icon: ShieldX, colorClass: 'text-orange-500' };
-  };
+  async function download(format: Format) {
+    if (pending) return;
+    setPending(format);
+    setNotice('');
+    setExportError('');
+    let url: string | null = null;
+    try {
+      const response = await fetch('/api/brand-export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: { brief, draft, source, note }, direction: selected, format }),
+      });
+      if (!response.ok) throw new Error('Export failed. Try downloading again.');
+      url = URL.createObjectURL(await response.blob());
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${name}-${format}.${format === 'assets' ? 'zip' : (format === 'avatar' || format === 'poster') ? 'png' : 'pdf'}`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setNotice('Download started.');
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'Export failed. Try downloading again.');
+    } finally {
+      if (url) {
+        const objectUrl = url;
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30_000);
+      }
+      setPending(null);
+    }
+  }
 
-  const getBarVariant = (score: number) => {
-    if (score >= 85) return 'high';
-    if (score < 70) return 'low';
-    return '';
-  };
+  const style = {
+    '--identity-ink': palette.ink.hex,
+    '--identity-paper': palette.paper.hex,
+    '--identity-accent': palette.accent.hex,
+    '--identity-on-accent': accentInk,
+    '--identity-tint': palette.tint.hex,
+  } as CSSProperties;
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between animate-fade-in">
-        <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Your Brand Kit
-        </h2>
-        <Button
-          onClick={onRegenerate}
-          variant="secondary"
-          size="md"
-          disabled={isLoading}
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Regenerate
-        </Button>
-      </div>
+    <div className="guide-shell" style={style}>
+      <header className="guide-toolbar">
+        <button type="button" className="guide-plain" onClick={onEdit} disabled={busy}>
+          <ArrowLeft size={16} aria-hidden="true" /> Edit brief
+        </button>
+        <button type="button" className="guide-plain guide-toolbar-marketing" onClick={onMarketing} disabled={busy}>
+          Marketing kit <ArrowRight size={15} aria-hidden="true" />
+        </button>
+        <button type="button" className="guide-action guide-action-primary" onClick={() => download('guidelines')} disabled={Boolean(pending)}>
+          {pending === 'guidelines' ? 'Preparing PDF…' : 'Download PDF'} <ArrowDownToLine size={15} aria-hidden="true" />
+        </button>
+      </header>
 
-      {/* Tagline */}
-      <div className="animate-slide-up stagger-1" style={{ opacity: 0, animationFillMode: 'forwards' }}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Brand Tagline</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-5">
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{result.tagline}</p>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => copyToClipboard(result.tagline, 'tagline')}
-                className="shrink-0 ml-3"
-              >
-                {copiedId === 'tagline' ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Description */}
-      <div className="animate-slide-up stagger-2" style={{ opacity: 0, animationFillMode: 'forwards' }}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Brand Description</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-start justify-between gap-4">
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-base">{result.description}</p>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => copyToClipboard(result.description, 'description')}
-                className="shrink-0"
-              >
-                {copiedId === 'description' ? (
-                  <Check className="w-4 h-4 text-green-500" />
-                ) : (
-                  <Copy className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Color Palette */}
-      <div className="animate-slide-up stagger-3" style={{ opacity: 0, animationFillMode: 'forwards' }}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Color Palette</CardTitle>
-            <CardDescription>Premium colors for your brand</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-5">
-              {Object.entries(result.colors).map(([name, hex]) => (
-                <div key={name} className="space-y-3 group">
-                  <div
-                    className="w-full aspect-square rounded-2xl border-2 border-gray-200/50 dark:border-gray-700/50 shadow-soft cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-medium hover:rounded-xl hover:z-10 relative"
-                    style={{ backgroundColor: hex }}
-                    onClick={() => copyToClipboard(hex, `color-${name}`)}
-                    title="Click to copy hex code"
-                  >
-                    {copiedId === `color-${name}` && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl animate-fade-in">
-                        <Check className="w-6 h-6 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 capitalize tracking-wide">{name}</p>
-                    <p className="text-base font-mono font-bold text-gray-900 dark:text-white mt-0.5">{hex}</p>
-                  </div>
-                </div>
+      <div className="guide-layout">
+        <aside className="guide-rail">
+          <div className="guide-index">
+            <div className="guide-rail-title">Contents</div>
+            <nav aria-label="Brand guideline sections">
+              {chapters.map(([id, label]) => (
+                <a key={id} href={`#${id}`} aria-current={id === chapter ? 'location' : undefined} onClick={() => setChapter(id)}>{label}</a>
               ))}
+            </nav>
+          </div>
+          <div className="guide-rail-actions">
+            <button className="guide-plain" type="button" onClick={() => download('assets')} disabled={Boolean(pending)}>
+              <ArrowDownToLine size={15} aria-hidden="true" /> {pending === 'assets' ? 'Preparing ZIP…' : 'Asset ZIP'}
+            </button>
+            <button className="guide-plain" type="button" onClick={() => download('logo-book')} disabled={Boolean(pending)}>
+              <Grid2X2 size={15} aria-hidden="true" /> {pending === 'logo-book' ? 'Preparing book…' : 'Logo book'}
+            </button>
+          </div>
+        </aside>
+
+        <article className="guide-document">
+          <Chapter id="foundation" title="Brand guidelines">
+            <div className="guide-heading">
+              <h1 id="foundation-title">{brief.businessName}</h1>
+              <p>{draft.tagline}</p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
 
-      <div className="animate-slide-up stagger-4" style={{ opacity: 0, animationFillMode: 'forwards' }}>
-        <Card className="logo-section-glow overflow-visible">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              Logo Concepts
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-semibold border border-indigo-200/50 dark:border-indigo-800/30">
-                <Sparkles className="w-3 h-3" />
-                Interactive
-              </span>
-            </CardTitle>
-            <CardDescription>AI-generated logo designs — click to select, reject, or regenerate with feedback</CardDescription>
-          </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-7">
-              {result.logoImages.map((imageUrl, index) => {
-                const state = logoStates[index];
-                if (!state) return null;
+            {source === 'local' && (
+              <div className="guide-preview-note">
+                <div><strong>Local preview</strong><p>{note}</p></div>
+                <button type="button" className="guide-plain" onClick={onRetry} disabled={busy}>
+                  <RotateCcw size={14} aria-hidden="true" /> {busy ? 'Retrying…' : 'Retry'}
+                </button>
+              </div>
+            )}
 
-                const isRejected = state.status === 'rejected';
-                const isRegenerating = state.status === 'regenerating';
-                const isSelected = state.selected && !isRejected;
-                const confidence = getConfidenceLabel(state.confidenceScore);
-                const ConfidenceIcon = confidence.icon;
-                const barVariant = getBarVariant(state.confidenceScore);
+            <div className="guide-cover">
+              <div className="guide-cover-meta"><span>{brief.industry}</span><span>Primary signature</span></div>
+              <Artwork svg={logo.lockupSvg} color={palette.paper.hex} alt={`${brief.businessName} primary signature`} className="guide-cover-art" />
+              <div className="guide-cover-meta guide-cover-foot"><span>{logo.title}</span><a href="#marks" aria-label="Jump to marks"><ArrowDown size={18} aria-hidden="true" /></a></div>
+            </div>
 
-                return (
-                  <div
-                    key={`${index}-${state.iterationCount}`}
-                    className={`logo-card ${isSelected ? 'selected' : ''} ${isRejected ? 'rejected' : ''} ${isRegenerating ? 'logo-regenerating' : ''}`}
-                  >
-                    <div className="logo-card-inner">
-                      {/* AI Generated Label */}
-                      <div className="ai-label">
-                        <Cpu className="w-2.5 h-2.5" />
-                        AI Generated
-                      </div>
+            <div className="guide-description">
+              <h3>Introduction</h3>
+              <div><p>{draft.introduction}</p><p>{draft.positioning}</p></div>
+            </div>
+          </Chapter>
 
-                      {/* Logo Image Frame */}
-                      <div
-                        className="logo-image-frame cursor-pointer relative"
-                        onClick={() => !isRejected && !isRegenerating && handleSelect(index)}
-                        id={`logo-card-${index}`}
-                      >
-                        {/* Shimmer while loading */}
-                        {imageUrl && imageUrl.trim() && !loadedImages[index] && !isRegenerating && (
-                          <div className="absolute inset-0 animate-shimmer z-10" />
-                        )}
-
-                        {/* Regenerating overlay */}
-                        {isRegenerating && (
-                          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-xl">
-                            <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
-                            <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">Regenerating...</p>
-                          </div>
-                        )}
-
-                        {/* Rejected overlay */}
-                        {isRejected && (
-                          <div className="logo-rejected-overlay">
-                            <XCircle className="w-10 h-10 text-red-400/70 mb-2" />
-                            <span className="text-sm font-semibold text-red-500/80 tracking-wide">Rejected</span>
-                          </div>
-                        )}
-
-                        {imageUrl && imageUrl.trim() ? (
-                          <Image
-                            src={imageUrl}
-                            alt={`Logo concept ${index + 1}`}
-                            fill
-                            className={`object-cover transition-opacity duration-500 ${isRejected ? 'opacity-30 grayscale' : ''}`}
-                            style={{ opacity: loadedImages[index] ? (isRejected ? 0.3 : 1) : 0 }}
-                            unoptimized
-                            onLoad={() => setLoadedImages(prev => ({ ...prev, [index]: true }))}
-                            onError={(e) => {
-                              const img = e.target as HTMLImageElement;
-                              img.style.display = 'none';
-                            }}
-                          />
-                        ) : null}
-                        {!imageUrl || !imageUrl.trim() ? (
-                          <div className="text-center w-full h-full flex flex-col items-center justify-center">
-                            <Sparkles className="w-10 h-10 text-indigo-400/50 mb-3 animate-float" />
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Logo Concept {index + 1}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Generated by AI</p>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      {/* Confidence Score + Progress Bar */}
-                      <div className={`mt-4 ${isRejected ? 'opacity-40' : ''}`}>
-                        <div className="confidence-tooltip">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-1.5">
-                              <ConfidenceIcon className={`w-3.5 h-3.5 ${confidence.colorClass}`} />
-                              <span className={`text-xs font-semibold ${confidence.colorClass}`}>
-                                {confidence.text}
-                              </span>
-                            </div>
-                            <span className="text-xs font-bold text-gray-700 dark:text-gray-300 tabular-nums">
-                              {state.confidenceScore}%
-                            </span>
-                          </div>
-                          <div className="confidence-bar">
-                            <div
-                              className={`confidence-bar-fill ${barVariant}`}
-                              style={{ width: `${state.confidenceScore}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Pill Action Buttons */}
-                      <div className="flex items-center gap-2 mt-4">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleReject(index); }}
-                          disabled={isRejected || isRegenerating}
-                          className={`pill-btn pill-btn-reject flex-1 ${isRejected ? 'is-rejected' : ''}`}
-                          id={`reject-logo-${index}`}
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                          {isRejected ? 'Rejected' : 'Reject'}
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleToggleFeedback(index); }}
-                          disabled={isRejected || isRegenerating}
-                          className={`pill-btn pill-btn-regen flex-1 ${state.showFeedbackInput ? 'is-active' : ''}`}
-                          id={`regenerate-logo-${index}`}
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          Regenerate
-                        </button>
-                      </div>
-
-                      {/* Feedback Input (expands on Regenerate click) */}
-                      {state.showFeedbackInput && (
-                        <div className="feedback-expand">
-                          <div className="bg-gradient-to-br from-gray-50/80 to-indigo-50/40 dark:from-gray-800/50 dark:to-indigo-950/20 rounded-xl p-3 border border-gray-200/50 dark:border-gray-700/30">
-                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
-                              What would you like to change?
-                            </label>
-                            <div className="flex gap-2">
-                              <Input
-                                placeholder="e.g., Make it rounder, use warmer tones..."
-                                value={state.feedback}
-                                onChange={(e) => handleFeedbackChange(index, e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleSubmitFeedback(index); }}
-                                className="text-sm"
-                                id={`feedback-input-${index}`}
-                              />
-                              <button
-                                onClick={() => handleSubmitFeedback(index)}
-                                disabled={!state.feedback.trim()}
-                                className={`shrink-0 w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 ${
-                                  state.feedback.trim()
-                                    ? 'bg-gradient-to-r from-indigo-500 to-blue-500 text-white shadow-md hover:shadow-lg hover:scale-110 active:scale-95'
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                                }`}
-                                id={`submit-feedback-${index}`}
-                              >
-                                <Send className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Updated Acknowledgment Toast */}
-                      {state.justUpdated && (
-                        <div className={`mt-3 ${state.toastExiting ? 'toast-exit' : 'toast-enter'}`}>
-                          <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 border border-emerald-200/50 dark:border-emerald-800/30">
-                            <Sparkles className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-                              Updated based on your feedback
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Concept label */}
-                      <p className="text-center text-sm font-semibold text-gray-600 dark:text-gray-400 mt-3">
-                        Concept {index + 1}
-                        {state.iterationCount > 0 && (
-                          <span className="ml-1.5 text-xs text-indigo-500 dark:text-indigo-400 font-medium">
-                            v{state.iterationCount + 1}
-                          </span>
-                        )}
-                      </p>
+          <Chapter id="marks" title="Logo system">
+            <fieldset className="guide-directions">
+              <legend>Choose a direction</legend>
+              <div className="guide-direction-grid">
+                {logos.map((direction, index) => (
+                  <label key={index} className={`guide-direction ${selected === index ? 'is-selected' : ''}`}>
+                    <input type="radio" name="logo-direction" checked={index === selected} onChange={() => onSelect(index)} className="sr-only" />
+                    <div className="guide-direction-art" style={{ background: direction.palette.tint.hex }}>
+                      <Artwork svg={direction.kind === 'wordmark' ? direction.wordmarkSvg : direction.markSvg} color={direction.palette.ink.hex} alt="" />
                     </div>
+                    <span>{direction.title}{selected === index && <Check size={14} aria-hidden="true" />}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="guide-description guide-direction-summary">
+              <h3>{logo.title}</h3>
+              <div>
+                <p>{logo.idea}</p>
+                {logo.kind === 'trace' && <p>Adapted from moodboard reference {logo.reference}.</p>}
+                {logo.checks.referenceCount > 0 && <p className="guide-caption">{logo.checks.referenceCount} reference silhouettes compared. {logo.kind !== 'trace' && (logo.checks.nearest ?? 0) >= similarityLimit ? 'Close match found. Review before adopting.' : ''}</p>}
+              </div>
+            </div>
+            <div className="guide-marks-grid">
+              <figure>
+                <div className="guide-mark-face">
+                  <Artwork svg={logo.lockupSvg} color={palette.ink.hex} alt="Primary signature" />
+                </div>
+                <figcaption><span>Primary signature</span><DownloadLink svg={logo.lockupSvg} color={palette.ink.hex} file={`${name}-signature.svg`}>SVG</DownloadLink></figcaption>
+              </figure>
+              <figure>
+                <div className="guide-mark-face guide-mark-reverse">
+                  <Artwork svg={logo.lockupSvg} color={palette.paper.hex} alt="Reversed signature" />
+                </div>
+                <figcaption><span>Reversed signature</span><DownloadLink svg={logo.lockupSvg} color={palette.paper.hex} file={`${name}-signature-reverse.svg`}>SVG</DownloadLink></figcaption>
+              </figure>
+            </div>
+            <div className="guide-marks-grid guide-mark-specs">
+              <figure>
+                <div className="guide-construction">
+                  <div className="guide-construction-box"><Artwork svg={logo.markSvg} color={palette.ink.hex} alt="Symbol aligned on the construction grid" /></div>
+                </div>
+                <figcaption><span>Symbol construction</span><DownloadLink svg={logo.markSvg} color={palette.ink.hex} file={`${name}-symbol.svg`}>SVG</DownloadLink></figcaption>
+              </figure>
+              <figure>
+                <div className="guide-scales">
+                  {[16, 32, 64].map((size) => <div key={size}><Artwork svg={logo.markSvg} color={palette.ink.hex} alt="" style={{ width: size, height: size }} /><span>{size} px</span></div>)}
+                </div>
+                <figcaption><span>Small-size proof</span><span>{logo.checks.faviconReady ? '16 px check passed' : 'Simplify at 16 px'}</span></figcaption>
+              </figure>
+            </div>
+            <div className="guide-description">
+              <h3>Clear space</h3>
+              <p>Keep half the symbol height clear around the artwork. Use the full signature at 128 px wide or more and switch to the symbol for avatars and compact navigation. Check small print on a proof at actual size.</p>
+            </div>
+          </Chapter>
+
+          <Chapter id="color" title="Core palette">
+            <div className="guide-swatches">
+              {colorKeys.map((key) => {
+                const color = palette[key];
+                const value = color.hex.toUpperCase();
+                return (
+                  <div className="guide-swatch" key={key}>
+                    <button type="button" className="guide-color-chip" style={{ background: value, color: readableOn(value) }} onClick={() => copy(value, value)} aria-label={`Copy ${color.name} hex ${value}`}>
+                      {copied === value ? <Check size={16} /> : <Clipboard size={16} />}
+                    </button>
+                    <h3>{color.name}</h3>
+                    <dl><div><dt>HEX</dt><dd>{value}</dd></div><div><dt>RGB</dt><dd>{rgb(value).join(', ')}</dd></div><div><dt>CMYK</dt><dd>{cmyk(value).join(', ')}</dd></div></dl>
+                    <p>{color.use}</p>
                   </div>
                 );
               })}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-6 text-center">
-              Click a logo to select it. Use <strong>Regenerate</strong> with feedback to get an AI-improved version.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Instagram Captions */}
-      <div className="animate-slide-up stagger-5" style={{ opacity: 0, animationFillMode: 'forwards' }}>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Instagram Captions</CardTitle>
-            <CardDescription>Ready-to-post captions for social media</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {result.captions.map((caption, index) => (
-                <div
-                  key={index}
-                  className="flex items-start justify-between gap-4 p-5 bg-gray-50/80 dark:bg-gray-800/50 rounded-xl border border-gray-200/50 dark:border-gray-700/30 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-soft"
-                >
-                  <p className="text-sm text-gray-700 dark:text-gray-300 flex-1 leading-relaxed">{caption}</p>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => copyToClipboard(caption, `caption-${index}`)}
-                    className="shrink-0"
-                  >
-                    {copiedId === `caption-${index}` ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-              ))}
+            <div className="guide-subsection-heading"><h3>Color balance</h3><button type="button" className="guide-inline-action" onClick={() => copy(colorKeys.map((key) => `--brand-${key}: ${palette[key].hex};`).join('\n'), 'CSS colors')}>Copy CSS <Clipboard size={14} /></button></div>
+            <div className="guide-proportions" role="img" aria-label={colorKeys.map((key) => `${palette[key].name} ${proportions[key]} percent`).join(', ')}>
+              {colorKeys.map((key) => <span key={key} style={{ flex: proportions[key], background: palette[key].hex, color: readableOn(palette[key].hex) }}>{proportions[key]}%</span>)}
             </div>
-          </CardContent>
-        </Card>
+            <div className="guide-subsection-heading"><h3>Readable combinations</h3></div>
+            <div className="guide-contrast">
+              {contrastPairs(palette).map(({ fg, bg, ratio }, index) => <div key={index}>
+                <div style={{ background: bg.hex, color: fg.hex }} aria-hidden="true">Aa</div>
+                <p>{fg.name} on {bg.name}<span>{ratio.toFixed(2)}:1 · {ratio >= 7 ? 'AAA' : ratio >= 4.5 ? 'AA' : 'Below AA'}</span></p>
+              </div>)}
+            </div>
+            <p className="guide-caption">Use AA or better for normal text. CMYK values are estimates. Confirm the print profile with your printer.</p>
+          </Chapter>
+
+          <Chapter id="typography" title="Type system">
+            <figure className="guide-type-specimen">
+              <figcaption><span>Display · {fonts[logo.font].name}</span><span>{fonts[logo.font].weight}</span></figcaption>
+              <textarea className={`guide-type-input ${sampleClass}`} aria-label={`Try ${fonts[logo.font].name}`} value={sample} maxLength={160} rows={2} onChange={(event) => setSample(event.target.value)} />
+              <div className="guide-type-actions"><button type="button" className="guide-inline-action" onClick={() => setSample(draft.voice.headline)}>Reset sample <RotateCcw size={13} /></button></div>
+            </figure>
+            <div className="guide-description guide-body-specimen">
+              <h3>Body · Manrope</h3><p>{draft.typography}</p>
+            </div>
+            <dl className="guide-type-scale">
+              {[['Display', '64 px / 1.05', 'Aa', 64], ['Heading', '40 px / 1.1', 'Aa', 40], ['Body', '16 px / 1.55', 'Aa', 16], ['Caption', '12 px / 1.5', 'Aa', 12]].map(([label, scale, text, size], index) => (
+                <div key={label}><dt>{label}</dt><dd>{scale}</dd><dd className={index < 2 ? sampleClass : ''} style={{ fontSize: size }}>{text}</dd></div>
+              ))}
+            </dl>
+          </Chapter>
+
+          <Chapter id="voice" title="Tone of voice">
+            <div className="guide-voice-hero">
+              <p className={sampleClass}>{draft.voice.headline}</p>
+              <span>{draft.voice.action}</span>
+            </div>
+            <div className="guide-description"><h3>How we sound</h3><p>{draft.voice.summary}</p></div>
+            <div className="guide-principles">
+              {draft.voice.principles.map((principle) => <div key={principle.title}>
+                <h3>{principle.title}</h3><p>{principle.guidance}</p><blockquote>{principle.example}</blockquote>
+              </div>)}
+            </div>
+          </Chapter>
+
+          <Chapter id="applications" title="Brand in use">
+            <div className="guide-app-grid">
+              <figure>
+                <div className="guide-poster">
+                  <Artwork svg={logo.lockupSvg} color={palette.paper.hex} alt="" />
+                  <p className={sampleClass}>{draft.voice.headline}</p>
+                  <span>{draft.voice.action}</span>
+                </div>
+                <figcaption><span>Campaign layout</span><button type="button" className="guide-inline-action" onClick={() => download('poster')} disabled={Boolean(pending)}>{pending === 'poster' ? 'Preparing…' : 'PNG'} <ArrowDownToLine size={14} /></button></figcaption>
+                <p>{draft.applications.poster}</p>
+              </figure>
+              <figure>
+                <div className="guide-avatar"><Artwork svg={logo.markSvg} color={accentInk} alt={`${brief.businessName} avatar`} /></div>
+                <figcaption><span>Social avatar</span><button type="button" className="guide-inline-action" onClick={() => download('avatar')} disabled={Boolean(pending)}>{pending === 'avatar' ? 'Preparing…' : 'PNG'} <ArrowDownToLine size={14} /></button></figcaption>
+                <p>{draft.applications.social}</p>
+              </figure>
+            </div>
+          </Chapter>
+
+          <Chapter id="exports" title="Export the identity">
+            <p className="guide-caption">Files follow the selected logo direction, {logo.title}.</p>
+            <div className="guide-export-list">
+              <ExportRow label="Brand guidelines" detail="PDF · 16:9 landscape" pending={pending} format="guidelines" download={download} />
+              <ExportRow label="Logo directions" detail="PDF · six directions and small-size proofs" pending={pending} format="logo-book" download={download} />
+              <ExportRow label="Production assets" detail="ZIP · SVG, PNG, ICO, color tokens and font licenses" pending={pending} format="assets" download={download} />
+            </div>
+          </Chapter>
+
+          <footer className="guide-footer"><span>{brief.businessName}</span><a href="#foundation">Back to top ↑</a></footer>
+        </article>
       </div>
+      <div role="status" className="sr-only">{notice}</div>
+      {exportError && <div role="alert" className="guide-export-error">{exportError}<button type="button" onClick={() => setExportError('')}>Dismiss</button></div>}
+    </div>
+  );
+}
+
+function ExportRow({ label, detail, format, pending, download }: { label: string; detail: string; format: Format; pending: Format | null; download: (format: Format) => void }) {
+  return (
+    <div className="guide-export-row">
+      <div><h3>{label}</h3><p>{detail}</p></div>
+      <button type="button" className="guide-action" aria-label={`Download ${label.toLowerCase()}`} disabled={Boolean(pending)} onClick={() => download(format)}>
+        {pending === format ? 'Preparing…' : 'Download'} {format === 'assets' ? <ArrowDownToLine size={15} /> : <FileText size={15} />}
+      </button>
     </div>
   );
 }

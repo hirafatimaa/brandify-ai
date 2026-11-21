@@ -54,7 +54,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fade-in">
         <div>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -75,7 +74,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
         </Button>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-2 border-b border-gray-200 dark:border-gray-800">
         <button
           onClick={() => setActiveTab('instagram')}
@@ -112,7 +110,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
         </button>
       </div>
 
-      {/* Instagram Posts */}
       {activeTab === 'instagram' && (
         <div className="space-y-6 animate-fade-in">
           {result.instagramPosts.map((post, idx) => (
@@ -125,7 +122,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Caption */}
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Caption</h4>
                     <div className="flex items-start gap-3">
@@ -144,7 +140,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                     </div>
                   </div>
 
-                  {/* Image Display */}
                   {post.imageUrl && (
                     <div>
                       <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Generated Image</h4>
@@ -158,7 +153,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                     </div>
                   )}
 
-                  {/* Hashtags */}
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Hashtags</h4>
                     <div className="flex flex-wrap gap-2">
@@ -170,7 +164,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                     </div>
                   </div>
 
-                  {/* Image Prompt */}
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Image Prompt (for AI generation)</h4>
                     <div className="flex items-start gap-3">
@@ -189,7 +182,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                     </div>
                   </div>
 
-                  {/* Comments & Replies */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Engagement Preview</h4>
                     {post.simulatedComments.map((comment, i) => (
@@ -209,7 +201,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
         </div>
       )}
 
-      {/* LinkedIn Posts */}
       {activeTab === 'linkedin' && (
         <div className="space-y-6 animate-fade-in">
           {result.linkedinPosts.map((post, idx) => (
@@ -222,7 +213,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Caption */}
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Post Content</h4>
                     <div className="flex items-start gap-3">
@@ -241,7 +231,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                     </div>
                   </div>
 
-                  {/* CTA */}
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Call-to-Action</h4>
                     <div className="flex items-start gap-3">
@@ -260,7 +249,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                     </div>
                   </div>
 
-                  {/* Image Display */}
                   {post.imageUrl && (
                     <div>
                       <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Generated Image</h4>
@@ -274,7 +262,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                     </div>
                   )}
 
-                  {/* Image Prompt */}
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Image Prompt</h4>
                     <div className="flex items-start gap-3">
@@ -293,7 +280,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
                     </div>
                   </div>
 
-                  {/* Comments & Replies */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Engagement Preview</h4>
                     {post.simulatedComments.map((comment, i) => (
@@ -313,10 +299,8 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
         </div>
       )}
 
-      {/* Lead Generation */}
       {activeTab === 'leads' && (
         <div className="space-y-6 animate-fade-in">
-          {/* Cold DM */}
           <div className="animate-slide-up" style={{ opacity: 0, animationFillMode: 'forwards' }}>
             <Card>
               <CardHeader>
@@ -345,7 +329,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
             </Card>
           </div>
 
-          {/* Follow-up DM */}
           <div className="animate-slide-up" style={{ opacity: 0, animationFillMode: 'forwards', animationDelay: '100ms' }}>
             <Card>
               <CardHeader>
@@ -374,7 +357,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
             </Card>
           </div>
 
-          {/* Lead Reply */}
           <div className="animate-slide-up" style={{ opacity: 0, animationFillMode: 'forwards', animationDelay: '200ms' }}>
             <Card>
               <CardHeader>
@@ -403,7 +385,6 @@ export function MarketingOutput({ result, onRegenerate, isLoading }: MarketingOu
             </Card>
           </div>
 
-          {/* Closing Message */}
           <div className="animate-slide-up" style={{ opacity: 0, animationFillMode: 'forwards', animationDelay: '300ms' }}>
             <Card>
               <CardHeader>

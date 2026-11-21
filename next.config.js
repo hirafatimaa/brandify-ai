@@ -3,10 +3,14 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   experimental: {
-    useWasmBinary: true,
+    serverComponentsExternalPackages: ['@resvg/resvg-js', 'sharp'],
+    outputFileTracingIncludes: {
+      '/api/generate': ['./node_modules/@fontsource/*/files/*-latin-*-normal.woff'],
+      '/api/brand-export': ['./node_modules/@fontsource/*/files/*-latin-*-normal.woff', './node_modules/@fontsource/*/LICENSE'],
+    },
   },
   images: {
-    unoptimized: true,
+    formats: ['image/avif', 'image/webp'],
   },
   typescript: {
     ignoreBuildErrors: false,

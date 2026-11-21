@@ -9,12 +9,10 @@ export async function POST(request: NextRequest) {
       industry,
       targetAudience,
       tone = 'modern',
-      logoStylePreference,
       mainProduct,
       colors,
     } = body;
 
-    // Validate required fields
     if (!businessName || !industry || !targetAudience) {
       return NextResponse.json(
         {
@@ -25,13 +23,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate marketing content
     const marketingContent = generateMarketingContent({
       businessName,
       industry,
       targetAudience,
       tone,
-      logoStylePreference,
       mainProduct,
       colors,
     });
