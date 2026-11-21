@@ -1,82 +1,27 @@
-# Brandify AI - Hackathon Edition
+# Brandify AI
 
-Brandify AI is a premium, AI-powered brand identity generator that creates a complete brand kit in seconds. Built for rapid prototyping and demo-ready delivery, it generates naming support, color palettes, and logo concepts, plus human-in-the-loop refinement for logo feedback.
+Brandify turns a business brief into six logo directions and a working brand manual. Pick a direction to see its signatures, palette, typography and applications. Download the manual, the logo book or a ZIP with production artwork.
 
-## Hackathon Context
+## Run locally
 
-**Event:** CWA Prompt-a-thon 2026
-**Theme:** The AI Brand Architect
+Use Node.js 20.9 or newer and Bun.
 
-
-This project is our submission for the AI Brand Architect theme: an AI-powered branding assistant that accepts a business description and generates brand assets, logo ideas, and marketing content. We added a human-in-the-loop logo feedback flow to make the results closer to real-world brand iteration.
-
-## Core Features
-
-- One-click brand kit generation (tagline, description, palette, captions)
-- AI and SVG logo concepts (3 per generation)
-- Human-in-the-loop logo regeneration with feedback
-- Premium UI with fast copy-to-clipboard and polished presentation
-- Fallback paths for when AI quotas are unavailable
-
-## Tech Stack
-
-- Next.js 16 (App Router)
-- TypeScript
-- Tailwind CSS + ShadCN UI
-- Google Gemini API (text + image)
-- Lucide React icons
-
-## Quick Start
-
-### Prerequisites
-- Node.js 18+
-- Gemini API key (free tier)
-
-### Setup
 ```bash
-npm install
+bun install
+cp -n .env.example .env.local
+bun run dev
 ```
 
-Create `.env.local`:
-```
-GEMINI_API_KEY=your_api_key_here
-```
+Create a key in [Google AI Studio](https://aistudio.google.com/apikey). Paste it after `GEMINI_API_KEY=` in `.env.local` and restart the dev server. The default text model is `gemini-3.1-flash-lite`, which Google lists on its [free tier](https://ai.google.dev/gemini-api/docs/pricing#gemini-3.1-flash-lite). Keep the key on the server. A missing key or a Gemini error opens a labeled local preview with preset logo directions and working exports.
 
-Run the dev server:
-```bash
-npm run dev
-```
+Open [the brand brief](http://localhost:3000/create). Use the optional logo details to supply a concept, constraints and up to six cropped logo references. Upload a mark you have permission to modify if you want Gemini to propose an adapted direction.
 
-Open http://localhost:3000
+## Generation and export
 
-## How It Works
+- `POST /api/generate` validates the brief, requests structured copy and logo recipes from Gemini, and builds outlined SVGs on the server. Gemini supplies two constructions for each pictorial direction so the renderer can try a second brief-specific mark when the first fails the silhouette or small-size checks.
+- `POST /api/brand-export` renders the chosen direction as a landscape PDF or asset ZIP. It also produces a six-direction logo book and a standalone avatar.
+- `POST /api/marketing` generates the separate marketing kit.
 
-1. Enter business name, industry, audience, and tone.
-2. The app generates a full brand kit and 3 logo concepts.
-3. Use “Regenerate” to create a fresh variant.
-4. Use the human-in-the-loop logo feedback to refine a specific logo.
+The [make-logo skill](https://github.com/arla6ka/design.how/tree/main/skills/make-logo) is vendored under `.agents/skills/make-logo` with its scripts and MIT license. The web implementation follows its grid recipes, outlined OFL fonts, 16 px checks, calibrated silhouette comparisons, direction book and production package. It uses public Are.na samples for additional comparisons when live generation is configured and those samples are available. The browser handles user image uploads locally and submits only low-resolution silhouettes. Public reference masks stay on the server. The site builds adaptations from explicitly opted-in uploaded marks. The upstream Python tools remain available for manual vector tracing and recalibration with a cleaned reference set.
 
-## API Endpoints
-
-- `POST /api/generate` – Full brand kit
-- `POST /api/regenerate-logo` – Single logo regeneration with feedback
-- `POST /api/marketing-content` – Marketing content package
-
-## Project Structure
-
-```
-app/            Next.js pages + API routes
-components/     UI + brand output components
-lib/            Gemini integration and generators
-```
-
-## Deployment (Vercel)
-
-1. Push to GitHub
-2. Import the repo in Vercel
-3. Add `GEMINI_API_KEY` in environment variables
-4. Deploy
-
----
-
-**Built with ❤️ for the CWA PROMPT-A-THON 2026. Ready to make real impact.**
+The project began at the CWA Prompt-a-thon 2026 under the AI Brand Architect theme.

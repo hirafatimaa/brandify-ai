@@ -1,15 +1,8 @@
-/**
- * Advanced Marketing Content Generator
- * Generates premium, detailed logo prompts, professional captions, 
- * and complete marketing material templates
- */
-
 interface MarketingContentInput {
   businessName: string;
   industry: string;
   targetAudience: string;
   tone: string;
-  logoStylePreference?: string;
   mainProduct?: string;
   colors?: {
     primary: string;
@@ -25,116 +18,14 @@ interface MarketingMaterial {
 }
 
 interface MarketingContent {
-  logoPrompts: string[];
   captions: string[];
   comments: string[][];
   marketingMaterials: MarketingMaterial;
 }
 
-/**
- * PREMIUM LOGO PROMPTS - Highly detailed for AI generation
- * Optimized for Gemini 2.0, DALL-E 3, Midjourney
- */
-function generateLogoPrompts(input: MarketingContentInput): string[] {
-  const {
-    businessName,
-    industry,
-    tone,
-    logoStylePreference = 'modern',
-    mainProduct = '',
-    targetAudience = '',
-    colors,
-  } = input;
-
-  // Ultra-detailed style specifications
-  const advancedStyles: { [key: string]: string } = {
-    minimal: `Minimalist icon design: single continuous line or minimal geometric form. Negative space is design element. Maximum whitespace, zero clutter. Single solid color (${colors?.primary || 'brand color'}) on white background. Crisp, sharp edges. Professional, timeless aesthetic. Scalable from favicon to billboard.`,
-    abstract: `Abstract conceptual design: flowing organic shapes meets modern geometry. Smooth curves, balanced composition, sophisticated movement. Layered depth through opacity and overlapping forms. Contemporary art gallery aesthetic. Memorable at any scale. Pure symbol, no literal representation.`,
-    playful: `Friendly, approachable icon: rounded elements, dynamic energy, subtle personality. Modern yet approachable curves. Vibrant yet professional color use. Whimsical but sophisticated. Memorable character without being cartoonish. Appeals to both younger and mature audiences.`,
-    geometric: `Geometric precision design: perfect symmetry, structural harmony, mathematical beauty. Polygons, circles, precise angles. Corporate yet creative. Built from modular elements. Conveyed trust and stability through perfect proportions. Architectural elegance.`,
-    luxury: `Premium luxury symbol: ornate elegance meets modern minimalism. Refined serif-inspired geometry. Gold-trimmed or accent highlight potential. Art deco influences mixed with contemporary sophistication. Conveys exclusivity, heritage, prestige. White space used strategically for luxury breathing room.`,
-    bold: `High-impact statement mark: commanding presence, strong contrast, striking silhouette. Thick powerful strokes, dynamic angles, confident energy. Demands attention without aggression. Modern disruptor aesthetic. Memorable from distance. Strong brand personality.`,
-    organic: `Natural, flowing design: organic curves inspired by nature, biological forms, flowing water. Smooth transitions, harmonic proportions. Eco-conscious aesthetic without being heavy-handed. Modern natural beauty. Sustainability conveyed through design language.`,
-  };
-
-  // Industry-specific context additions
-  const industryContext: { [key: string]: string } = {
-    tech: 'Tech-forward aesthetic: circuit patterns optional, connectivity themes, future-ready',
-    finance: 'Trust-conveying design: stability, growth trajectory, structured confidence',
-    fashion: 'Style-forward: elegant proportions, visual fashion sense, trendsetter energy',
-    'food & beverage': 'Appetite-invoking: organic appeal, warmth, premium craftsmanship vibes',
-    health: 'Wellness-focused: healing geometry, care-conveying forms, safety assurance',
-    education: 'Knowledge-communicating: growth symbolism, learning journey visual, inspiration',
-    entertainment: 'Engaging energy: dynamic movement, entertainment appeal, audience connection',
-    'real estate': 'Stability-conveying: architectural elegance, community, growth symbolism',
-  };
-
-  const style = advancedStyles[logoStylePreference?.toLowerCase()] || advancedStyles.modern;
-  const context = industryContext[industry?.toLowerCase()] || '';
-
-  // Two premium, highly detailed prompts
-  const prompts = [
-    `PREMIUM LOGO: ${businessName} (${industry})
-
-DESIGN SPECIFICATIONS:
-${style}
-
-INDUSTRY CONTEXT: ${context}
-
-PRODUCT FOCUS: ${mainProduct ? `Core visual element subtly references "${mainProduct}" without being literal or obvious` : 'Timeless, industry-relevant symbolism'}
-
-BRAND PERSONALITY: ${tone} (${
-      tone === 'modern' ? 'contemporary, innovative, forward-thinking'
-      : tone === 'luxury' ? 'premium, sophisticated, exclusive'
-      : tone === 'fun' ? 'playful, energetic, approachable'
-      : tone === 'minimal' ? 'clean, purposeful, refined'
-      : tone === 'bold' ? 'confident, disruptive, powerful'
-      : 'professional, trustworthy'
-    })
-
-TECHNICAL REQUIREMENTS:
-- SVG-ready or vector-capable design
-- Works as both mark AND in commercial applications
-- Recognizable at all sizes (favicon to billboard)
-- Monochrome version should work equally well
-- Color version uses ${colors?.primary || 'sophisticated primary'} as primary, ${colors?.accent || 'complementary accent'} as highlight
-
-STANDALONE SYMBOL - No text, letters, or company name initials
-Perfect symmetry OR intentional dynamic asymmetry (not random)
-Professional, premium, memorable. Industry leader aesthetic.`,
-
-    `SOPHISTICATED BRAND MARK: ${businessName}
-
-Create a distinctive visual identity that immediately communicates:
-- Industry: ${industry}
-- Target market: ${targetAudience}
-- Brand personality: ${tone}
-${mainProduct ? `- Core value: ${mainProduct}` : ''}
-
-DESIGN APPROACH:
-Strategic use of ${logoStylePreference} principles. Sophisticated composition. Professional polish.
-The mark should evoke premium quality and industry expertise immediately upon viewing.
-No clichés, no generic shapes, no overused industry symbols.
-UNIQUE, MEMORABLE, PROFESSIONAL.
-
-EXECUTION:
-Studio-quality design, perfect proportions, intentional every detail.
-Should look like it took $10,000 to create, not $100.
-Future-proof (doesn't look trendy, looks timeless).
-Horizontal and vertical applications both work.`,
-  ];
-
-  return prompts;
-}
-
-/**
- * PROFESSIONAL CAPTIONS - Detailed, engaging, specific
- * Written as if by brand founder, includes storytelling
- */
 function generateCaptions(input: MarketingContentInput): string[] {
   const { businessName, industry, targetAudience, tone, mainProduct } = input;
 
-  // More detailed, personality-filled captions
   const captionSets: { [key: string]: string[] } = {
     luxury: [
       `We didn't just enter ${industry}—we redefined it. 
@@ -247,7 +138,7 @@ Join the disruption. 🔥`,
 
       `Mediocrity has competition. Finally.
 
-${businessName}: built for leaders, not followers. We deliver ${mainProduct || 'excellence in ' + industry}} that disrupts, inspires, and converts.
+${businessName}: built for leaders, not followers. We deliver ${mainProduct || 'excellence in ' + industry} that disrupts, inspires, and converts.
 
 For ${targetAudience}: your new benchmark has arrived.`,
 
@@ -263,9 +154,6 @@ Are you ready for what's next? Let's build it together.`,
   return captions.slice(0, 3);
 }
 
-/**
- * PREMIUM COMMENTS - Realistic social proof
- */
 function generateComments(input: MarketingContentInput): string[][] {
   const { businessName, targetAudience, tone } = input;
 
@@ -361,13 +249,9 @@ function generateComments(input: MarketingContentInput): string[][] {
   return comments;
 }
 
-/**
- * ALTERNATIVE MARKETING MATERIALS - Professional, multi-channel
- */
 function generateMarketingMaterials(input: MarketingContentInput): MarketingMaterial {
   const { businessName, industry, targetAudience, tone, mainProduct } = input;
 
-  // Email subject lines (multiple options)
   const emailSubjectLines = [
     `Introducing ${businessName}: ${tone} ${mainProduct || industry} Redefined`,
     `${targetAudience}, Meet Your New Favorite ${mainProduct || 'Brand'}`,
@@ -376,7 +260,6 @@ function generateMarketingMaterials(input: MarketingContentInput): MarketingMate
     `Exclusive Access: ${businessName}'s Limited Launch`,
   ];
 
-  // Landing page headlines (conversion-focused)
   const landingPageHeadlines = [
     `${businessName}: Premium ${mainProduct || industry} for Discerning ${targetAudience}`,
     `Finally, a ${mainProduct || industry} Brand That Gets It`,
@@ -385,7 +268,6 @@ function generateMarketingMaterials(input: MarketingContentInput): MarketingMate
     `Redefining ${industry} for the Modern ${targetAudience}`,
   ];
 
-  // Instagram story starters (urgency + curiosity)
   const instagramStories = [
     `🚀 We just launched something that changes everything about ${mainProduct || industry}...`,
     `✨ For ${targetAudience} who refuse to compromise on quality...`,
@@ -394,7 +276,6 @@ function generateMarketingMaterials(input: MarketingContentInput): MarketingMate
     `🔥 The ${industry} world isn't ready for what we just did...`,
   ];
 
-  // LinkedIn article opener (thought leadership)
   const linkedinArticle = `How We Transformed ${industry} for ${tone} ${targetAudience}
 
 When we started ${businessName}, we saw one clear problem: ${industry} was stuck.
@@ -417,19 +298,14 @@ Here's what we learned—and why it matters for your business:
   };
 }
 
-/**
- * Main export: Generate all marketing content
- */
 export function generateMarketingContent(
   input: MarketingContentInput
 ): MarketingContent {
-  const logoPrompts = generateLogoPrompts(input);
   const captions = generateCaptions(input);
   const comments = generateComments(input);
   const marketingMaterials = generateMarketingMaterials(input);
 
   return {
-    logoPrompts,
     captions,
     comments,
     marketingMaterials,

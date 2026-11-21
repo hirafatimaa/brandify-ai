@@ -1,22 +1,26 @@
-import * as React from "react"
+import * as React from 'react';
+import { ChevronDown } from 'lucide-react';
 
 export interface SelectProps
   extends React.SelectHTMLAttributes<HTMLSelectElement> {}
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, ...props }, ref) => (
-    <select
-      className={
-        "flex h-12 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-base text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 dark:focus:ring-blue-400/30 dark:focus:border-blue-400 focus:shadow-[0_0_0_4px_rgba(59,130,246,0.1)] disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 appearance-none pr-10 " +
-        (className || "")
-      }
-      ref={ref}
-      {...props}
-    >
-      {children}
-    </select>
+  ({ className = '', children, ...props }, ref) => (
+    <div className="relative w-full">
+      <select
+        className={`flex h-11 w-full appearance-none rounded-xl border border-input bg-background px-3.5 py-2.5 pr-10 text-sm text-foreground transition-[border-color,box-shadow] duration-150 hover:border-foreground/30 focus-visible:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/10 disabled:cursor-not-allowed disabled:opacity-50 ${className}`.trim()}
+        ref={ref}
+        {...props}
+      >
+        {children}
+      </select>
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+      />
+    </div>
   )
-)
-Select.displayName = "Select"
+);
+Select.displayName = 'Select';
 
-export { Select }
+export { Select };

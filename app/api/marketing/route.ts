@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateMarketingKit } from '@/lib/gemini';
 
-// Set timeout for marketing kit generation
 export const maxDuration = 60;
+
+const GENERATION_TIMEOUT_MS = 40_000;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { businessName, industry, targetAudience, tone } = body;
 
-    // Validate required fields
     if (!businessName || !industry || !targetAudience) {
       return NextResponse.json(
         { message: 'Missing required fields: businessName, industry, targetAudience' },
@@ -24,9 +24,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate marketing kit with timeout wrapper
     const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), 40000)
+      setTimeout(() => reject(new Error('TIMEOUT')), GENERATION_TIMEOUT_MS)
     );
 
     const marketingKit = await Promise.race([
@@ -43,7 +42,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.warn('⚠️ [API Route] Marketing kit generation failed:', error);
     
-    // Return graceful fallback
     try {
       const body = await request.clone().json().catch(() => ({}));
       const name = body.businessName || 'Your Brand';
